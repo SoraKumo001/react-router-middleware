@@ -1,0 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
+export const asyncLocalStorage = new AsyncLocalStorage<{
+  cloudflare: { env: object };
+}>();
