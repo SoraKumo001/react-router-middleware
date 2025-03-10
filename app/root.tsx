@@ -10,9 +10,8 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { asyncLocalStorage } from "./context";
+import { asyncLocalStorage, type CloudflareRouterContext } from "./context";
 import { RootProvider, RootValue } from "remix-provider";
-import { middlewareContext } from "workers/getLoadContext";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -85,6 +84,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
 // add middleware
 export const unstable_middleware: unstable_MiddlewareFunction[] = [
-  ({ context }, next) =>
-    asyncLocalStorage.run(context.get(middlewareContext), next),
+  ({ context }, next) => {
+    return asyncLocalStorage.run(
+      context.get("cloudflare" as CloudflareRouterContext),
+      next
+    );
+  },
 ];

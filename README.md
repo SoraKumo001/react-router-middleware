@@ -26,30 +26,16 @@ export default {
 } satisfies Config;
 ```
 
-## workers/getLoadContext.ts
-
-```ts
-import type { unstable_RouterContext } from "react-router";
-
-export const middlewareContext = "Cloudflare" as unstable_RouterContext<{
-  cloudflare: { env: object };
-}>;
-export const getLoadContext = ({ context }: { context: unknown }) => {
-  return new Map([[middlewareContext, context]]) as never;
-};
-```
-
 ## vite.config.ts
 
 ```ts
 import { reactRouter } from "@react-router/dev/vite";
-import { cloudflareDevProxy } from "@react-router/dev/vite/cloudflare";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { getLoadContext } from "./workers/getLoadContext";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ isSsrBuild }) => ({
+export default defineConfig(({ isSsrBuild, mode }) => ({
   build: {
     rollupOptions: isSsrBuild
       ? {
@@ -57,10 +43,12 @@ export default defineConfig(({ isSsrBuild }) => ({
         }
       : undefined,
   },
+
   plugins: [
-    cloudflareDevProxy({
-      getLoadContext, // add getLoadContext here
-    }),
+    mode === "development" &&
+      cloudflare({
+        configPath: "wrangler.dev.toml",
+      }),
     tailwindcss(),
     reactRouter(),
     tsconfigPaths(),
@@ -118,6 +106,9 @@ export const unstable_middleware: unstable_MiddlewareFunction[] = [
 import { useLoaderData } from "react-router";
 import { useRootContext } from "remix-provider";
 import { asyncLocalStorage } from "~/context";
+import pg from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 
 export default function Index() {
   const server = useLoaderData<string>();
@@ -125,7 +116,7 @@ export default function Index() {
   return (
     <div>
       <div className="text-blue-600">Client:</div>
-      <pre>{JSON.stringify(client, null, 2)}</pre>
+      <pre>{JSON.stringify({ env: client }, null, 2)}</pre>
       <hr />
       <div className="text-red-600">Server:</div>
       <pre>{server}</pre>
@@ -133,12 +124,53 @@ export default function Index() {
   );
 }
 
-export const loader = () => {
-  const value = JSON.stringify(
-    asyncLocalStorage.getStore()?.cloudflare.env,
-    null,
-    2
-  );
-  return value;
+export const loader = async () => {
+  const env = asyncLocalStorage.getStore()?.cloudflare.env as {
+    DATABASE_URL: string;
+  };
+
+  const url = new URL(env.DATABASE_URL);
+  const schema = url.searchParams.get("schema") ?? undefined;
+  const pool = new pg.Pool({
+    connectionString: env.DATABASE_URL,
+  });
+  const adapter = new PrismaPg(pool, { schema });
+  const prisma = new PrismaClient({ adapter });
+  await prisma.test.create({ data: {} });
+  const value = await prisma.test
+    .findMany({ where: {} })
+    .then((r) => r.map(({ id }) => id));
+  return JSON.stringify({ env, prisma: value }, null, 2);
 };
+```
+
+## workers/app.ts
+
+```ts
+import { createRequestHandler } from "react-router";
+
+declare global {
+  interface CloudflareEnvironment extends Env {
+    DATABASE_URL: string;
+  }
+}
+
+const requestHandler = createRequestHandler(
+  // @ts-expect-error - virtual module provided by React Router at build time
+  () => import("virtual:react-router/server-build"),
+  import.meta.env.MODE
+);
+
+export default {
+  fetch(request, env, ctx) {
+    return requestHandler(
+      request,
+      // When using unstable_middleware, no way to pass Cloudflare context is provided, so you have to force it in.
+      // Also, as of 7.3.0, the type definition for this part is wrong, so you have to use never to get around it.
+      // As for the Map key, if you use an instance of unstable_RouterContext, the one built with Vite and the one built with wrangler,
+      // keys are different between the Vite-built and wrangler-built instances, so a string is used as the key.
+      new Map([["cloudflare", { cloudflare: { env, ctx } }]]) as never
+    );
+  },
+} satisfies ExportedHandler<CloudflareEnvironment>;
 ```

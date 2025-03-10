@@ -1,11 +1,10 @@
 import { reactRouter } from "@react-router/dev/vite";
-import { cloudflareDevProxy } from "@react-router/dev/vite/cloudflare";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { getLoadContext } from "./workers/getLoadContext";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ isSsrBuild }) => ({
+export default defineConfig(({ isSsrBuild, mode }) => ({
   build: {
     rollupOptions: isSsrBuild
       ? {
@@ -13,10 +12,12 @@ export default defineConfig(({ isSsrBuild }) => ({
         }
       : undefined,
   },
+
   plugins: [
-    cloudflareDevProxy({
-      getLoadContext,
-    }),
+    mode === "development" &&
+      cloudflare({
+        configPath: "wrangler.dev.toml",
+      }),
     tailwindcss(),
     reactRouter(),
     tsconfigPaths(),
