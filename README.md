@@ -35,20 +35,9 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ isSsrBuild, mode }) => ({
-  build: {
-    rollupOptions: isSsrBuild
-      ? {
-          input: "./workers/app.ts",
-        }
-      : undefined,
-  },
-
+export default defineConfig(({ mode }) => ({
   plugins: [
-    mode === "development" &&
-      cloudflare({
-        configPath: "wrangler.dev.toml",
-      }),
+    mode === "development" && cloudflare(),
     tailwindcss(),
     reactRouter(),
     tsconfigPaths(),
@@ -156,9 +145,13 @@ declare global {
 }
 
 const requestHandler = createRequestHandler(
-  // @ts-expect-error - virtual module provided by React Router at build time
-  () => import("virtual:react-router/server-build"),
-  import.meta.env.MODE
+  () =>
+    import(
+      import.meta.hot
+        ? "virtual:react-router/server-build"
+        : "../build/server/index.js"
+    ).catch(),
+  import.meta.env?.MODE
 );
 
 export default {
