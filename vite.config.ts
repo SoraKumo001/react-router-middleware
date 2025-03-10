@@ -4,20 +4,9 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ isSsrBuild, mode }) => ({
-  build: {
-    rollupOptions: isSsrBuild
-      ? {
-          input: "./workers/app.ts",
-        }
-      : undefined,
-  },
-
+export default defineConfig(({ mode }) => ({
   plugins: [
-    mode === "development" &&
-      cloudflare({
-        configPath: "wrangler.dev.toml",
-      }),
+    mode === "development" && cloudflare(),
     tailwindcss(),
     reactRouter(),
     tsconfigPaths(),

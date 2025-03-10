@@ -7,9 +7,13 @@ declare global {
 }
 
 const requestHandler = createRequestHandler(
-  // @ts-expect-error - virtual module provided by React Router at build time
-  () => import("virtual:react-router/server-build"),
-  import.meta.env.MODE
+  () =>
+    import(
+      import.meta.hot
+        ? "virtual:react-router/server-build"
+        : "../build/server/index.js"
+    ).catch(),
+  import.meta.env?.MODE
 );
 
 export default {
