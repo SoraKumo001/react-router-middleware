@@ -143,14 +143,12 @@ declare global {
     DATABASE_URL: string;
   }
 }
-
 const requestHandler = createRequestHandler(
-  () =>
-    import(
-      import.meta.hot
-        ? "virtual:react-router/server-build"
-        : "../build/server/index.js"
-    ).catch(),
+  await import(
+    import.meta.env
+      ? "virtual:react-router/server-build"
+      : "../build/server/index.js"
+  ).catch(),
   import.meta.env?.MODE
 );
 
