@@ -5,14 +5,11 @@ declare global {
     DATABASE_URL: string;
   }
 }
-const requestHandler = createRequestHandler(
-  await import(
-    import.meta.env
-      ? "virtual:react-router/server-build"
-      : "../build/server/index.js"
-  ).catch(),
-  import.meta.env?.MODE
-);
+
+// @ts-ignore
+const build = await import("../build/server/index.js");
+// @ts-ignore
+const requestHandler = createRequestHandler(build, import.meta.env?.MODE);
 
 export default {
   fetch(request, env, ctx) {
