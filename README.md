@@ -22,6 +22,7 @@ export default {
   future: {
     unstable_middleware: true, // Required to run middleware
     unstable_optimizeDeps: true, // Consistency of React instances during development mode execution.
+    unstable_viteEnvironmentApi: true,
   },
 } satisfies Config;
 ```
@@ -35,7 +36,7 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
   resolve: {
     alias: [
       {
@@ -44,12 +45,7 @@ export default defineConfig(({ mode }) => ({
       },
     ],
   },
-  plugins: [
-    mode === "development" && cloudflare(),
-    tailwindcss(),
-    reactRouter(),
-    tsconfigPaths(),
-  ],
+  plugins: [cloudflare(), tailwindcss(), reactRouter(), tsconfigPaths()],
 }));
 ```
 
