@@ -20,14 +20,13 @@ export default function Index() {
 }
 
 export const loader = async () => {
-  const env = asyncLocalStorage.getStore()?.cloudflare.env as {
-    DATABASE_URL: string;
-  };
+  const env = asyncLocalStorage.getStore()?.cloudflare.env;
+  const databaseUrl = env?.DATABASE_URL ?? "";
 
-  const url = new URL(env.DATABASE_URL);
+  const url = new URL(databaseUrl);
   const schema = url.searchParams.get("schema") ?? undefined;
   const pool = new pg.Pool({
-    connectionString: env.DATABASE_URL,
+    connectionString: databaseUrl,
   });
   const adapter = new PrismaPg(pool, { schema });
   const prisma = new PrismaClient({ adapter });
