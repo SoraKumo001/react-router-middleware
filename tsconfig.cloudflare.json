@@ -6,7 +6,8 @@
     "app/**/.server/**/*",
     "app/**/.client/**/*",
     "worker-configuration.d.ts",
-    "workers/**/*"
+    "workers/**/*",
+    "react-router.config.ts"
   ],
   "compilerOptions": {
     "composite": true,
